@@ -1,0 +1,16 @@
+#!/bin/sh
+
+# pre-commit: 仅运行轻量级检查，不要跑全量测试！
+
+echo "🔍 [pre-commit] 正在运行代码样式、单元测试以及格式检查..."
+
+# 委托给 Gradle Task，--no-daemon 避免首次启动守护进程的延迟
+# -q 减少输出噪音，只在失败时显示详情
+./gradlew preCommitCheck --no-daemon -q
+
+EXIT_CODE=$?
+if [ $EXIT_CODE -ne 0 ]; then
+    echo "❌ [pre-commit] 检查失败!请在提交之前解决上述问题。"
+    echo "💡 提示：运行 './gradlew preCommitCheck' 手动查看详细输出。"
+fi
+exit $EXIT_CODE

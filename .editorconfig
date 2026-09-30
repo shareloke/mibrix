@@ -1,0 +1,31 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+# 缩进的方式
+indent_style = space
+# 删除行末的空白
+trim_trailing_whitespace = true
+# 添加文件末尾的换行符
+insert_final_newline = true
+
+[*.xml]
+indent_size = 2
+
+[*.{kt,kts}]
+max_line_length = 120
+indent_size = 4
+
+# Ktlint 特定规则
+ktlint_standard = enabled
+ktlint_experimental = enabled
+ktlint_standard_comment-spacing = disabled
+ktlint_standard_filename = enabled
+ktlint_standard_function-naming = enabled
+
+# 允许尾随逗号 (Kotlin 1.4+ 推荐风格)
+ij_kotlin_allow_trailing_comma = true
+ij_kotlin_allow_trailing_comma_on_call_site = true
+ij_kotlin_imports_layout = *
+

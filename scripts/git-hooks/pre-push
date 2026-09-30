@@ -1,0 +1,14 @@
+#!/bin/sh
+
+# pre-push: 运行编译 + 单元测试，确保推上去的代码不会破坏 CI
+
+echo "🧪 [pre-push] 正在运行项目测试检查..."
+
+./gradlew prePushCheck --no-daemon -q
+
+EXIT_CODE=$?
+if [ $EXIT_CODE -ne 0 ]; then
+    echo "❌ [pre-push] 测试检查失败! Push rejected."
+    echo "💡 提示：运行 './gradlew prePushCheck' 手动查看详细输出。"
+fi
+exit $EXIT_CODE
