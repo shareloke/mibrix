@@ -13,7 +13,7 @@ spring-dependency-management = "1.1.7"
 detekt = "1.23.8"
 spotless = "7.2.1"
 swagger = "2.9.1"
-swagger-annotations = "2.2.50"
+jreleaser = "1.26.0"
 
 [libraries]
 
@@ -54,7 +54,7 @@ spring-boot-autoconfigure-processor = { module = "org.springframework.boot:sprin
 # springdoc 接口文档
 springdoc-bom = { module = "org.springdoc:springdoc-openapi-bom", version.ref = "swagger" }
 springdoc-common = { module = "org.springdoc:springdoc-openapi-starter-common" }
-springdoc-webmvc-scalar = { module = "org.springdoc:springdoc-openapi-starter-webmvc-scalar"}
+springdoc-webmvc-scalar = { module = "org.springdoc:springdoc-openapi-starter-webmvc-scalar" }
 
 # ---- Groovy（JSR-223 脚本引擎，版本由 BOM 管理） ----
 groovy = { module = "org.apache.groovy:groovy" }
@@ -79,3 +79,4 @@ kotlin-spring = { id = "org.jetbrains.kotlin.plugin.spring", version.ref = "kotl
 kotlin-jpa = { id = "org.jetbrains.kotlin.plugin.jpa", version.ref = "kotlin" }
 spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }
 spring-dependency-management = { id = "io.spring.dependency-management", version.ref = "spring-dependency-management" }
+jreleaser = { id = "org.jreleaser", version.ref = "jreleaser" }

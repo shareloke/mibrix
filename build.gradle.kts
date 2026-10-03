@@ -1,6 +1,10 @@
+import java.util.Base64
+
 // 项目依赖、版本管理等配置文件
 plugins {
     `maven-publish`
+    signing
+    alias(libs.plugins.jreleaser)
     alias(libs.plugins.kotlin.jvm) apply false
     alias(libs.plugins.kotlin.spring) apply false
     alias(libs.plugins.kotlin.jpa) apply false
@@ -10,15 +14,25 @@ plugins {
     alias(libs.plugins.spotless)
 }
 
-description = "是一个“搭积木”式的理念打造的全栈低代码框架库"
+description = "是一个“搭积木”式理念打造的低代码库"
 
+// 对外暴露的函数，子项目可以调用这些函数
 extra["capitalizeEachWord"] = ::capitalizeEachWord
-val taskNames = gradle.startParameter.taskNames
-val isSnapshot = taskNames.isNotEmpty() && taskNames[0].contains("NexusSnapshot")
-val projectGroup: String by project
-val projectVersion: String by project
-val projectBomModule: String by project
-val projectExclude: String by project
+extra["publishingConfig"] = ::publishingConfig
+
+// 项目全局变量
+val projectGroup = "cn.mibrix"
+val projectVersion = "2026.0.0.3"
+val projectBomModule = "mibrix-bom"
+val projectExclude = arrayOf("mibrix-starter")
+val snapshotName = "snapshot"
+val releaseName = "release"
+val snapshotDirName = "$snapshotName-deploy"
+val releaseDirName = "$releaseName-deploy"
+val nexusReleaseUrl = "https://central.sonatype.com/api/v1/publisher"
+val nexusSnapshotUrl = "https://central.sonatype.com/repository/maven-snapshots/"
+val isSnapshot = providers.gradleProperty(snapshotName).map { it.toBoolean() }
+    .getOrElse(false) || gradle.startParameter.taskNames.firstOrNull()?.contains(snapshotName, true) == true
 
 /**
  * 驼峰命名法转为大驼峰命名法
@@ -34,10 +48,15 @@ fun capitalizeEachWord(str: String): String {
     }
 }
 
+// 获取发布配置文件内容
+fun publishingConfig() = rootProject.file("config/gradle/publishing.gradle.kts")
+
+// ==================== 全局仓库配置 ====================
 allprojects {
     group = projectGroup
     version = "$projectVersion${if (isSnapshot) "-SNAPSHOT" else ""}"
 
+    // 项目仓库：本地仓库、中央仓库、阿里云仓库、插件仓库、Google仓库等
     repositories {
         mavenLocal()
         mavenCentral()
@@ -51,11 +70,16 @@ allprojects {
     }
 }
 
+// ==================== 子项目配置 ====================
 subprojects {
     val rLibs = rootProject.libs
 
+    // 1. 应用基础插件
     apply {
         plugin("maven-publish")
+        plugin("signing")
+        plugin(rLibs.plugins.jreleaser.get().pluginId)
+        // 根据项目名称应用不同的插件
         when (project.name) {
             projectBomModule -> plugin("java-platform")
             else -> {
@@ -68,7 +92,10 @@ subprojects {
         }
     }
 
+    // 2. 代码质量与格式化工具配置 (非 BOM 模块)
     if (project.name != projectBomModule) {
+
+        // 依赖管理
         dependencies {
             detektPlugins(rLibs.detekt.plugin.formatting)
         }
@@ -124,7 +151,193 @@ subprojects {
                 licenseHeaderFile("${rootDir}/config/spotless/copyright.kt", "package ")
             }
         }
+
+        // 配置Java相关任务
+        apply {
+            from(rootProject.file("config/gradle/java.gradle.kts"))
+        }
+
+        tasks {
+            // 配置Java编译任务
+            withType<JavaCompile> {
+                options.encoding = "UTF-8"
+            }
+
+            // 生成Java文档
+            existing(Javadoc::class) {
+                options.encoding = "UTF-8"
+            }
+
+            // 配置Jar任务
+            withType<Jar> {
+                manifest {
+                    attributes["Implementation-Title"] = project.name
+                    attributes["Implementation-Version"] = project.version
+                }
+            }
+        }
     }
+
+    // 3. 签名配置
+    signing {
+        isRequired = !isSnapshot
+        val signingKeyBase64: String by project
+        val signingPassword: String by project
+        val signingKey = String(Base64.getDecoder().decode(signingKeyBase64))
+        useInMemoryPgpKeys(signingKey, signingPassword)
+        sign(publishing.publications)
+    }
+
+    // 4. 发布仓库配置 (物理隔离 Snapshot 和 Release 目录)
+    publishing {
+        repositories {
+            maven {
+                name = snapshotName
+                url = rootProject.layout.buildDirectory.dir(snapshotDirName).get().asFile.toURI()
+            }
+            maven {
+                name = releaseName
+                url = rootProject.layout.buildDirectory.dir(releaseDirName).get().asFile.toURI()
+            }
+        }
+    }
+
+    // 5. 按模块精准清理 staging 目录 (独立前置任务)
+    val deployDirName = if (isSnapshot) snapshotDirName else releaseDirName
+
+    // 计算当前模块在 staging 目录中的相对路径 (例如: cn/mibrix/mibrix-core)
+    val moduleStagingPath = "${project.group.toString().replace('.', '/')}/${project.name}"
+    val moduleDeployDir = rootProject.layout.buildDirectory.dir(deployDirName).map {
+        it.dir(moduleStagingPath)
+    }
+
+    // 注册独立的清理任务
+    val cleanModuleStaging by tasks.registering(Delete::class) {
+        group = "publishing"
+        description = "Clean staging directory for ${project.name} before publishing"
+        val dir = moduleDeployDir.get().asFile
+        if (dir.exists()) {
+            dir.deleteRecursively()
+            logger.lifecycle("🧹 Cleaned staging for ${project.name}: ${dir.relativeTo(rootProject.projectDir)}")
+        }
+
+        // Snapshot 模式下额外清理冗余校验和文件（在删除整个目录后其实已不需要，
+        // 但保留此逻辑以应对仅部分清理的场景）
+        if (isSnapshot) {
+            doLast {
+                if (dir.exists()) {
+                    dir.walkTopDown()
+                        .filter { it.isFile && it.extension in listOf("md5", "sha1", "sha256", "sha512", "asc") }
+                        .forEach { file ->
+                            file.delete()
+                            logger.lifecycle("✅️ Removed redundant: ${file.relativeTo(rootProject.projectDir)}")
+                        }
+                }
+            }
+        }
+    }
+
+    // 6. 发布任务时序控制 (✅ 按模块精准清理 staging 目录，替代全局 clean)
+    tasks.matching { it.name.startsWith("publishAllPublicationsTo") }.configureEach {
+        dependsOn(cleanModuleStaging)
+        mustRunAfter(cleanModuleStaging) // 双重保障：即使被其他任务间接触发，也确保清理先执行
+
+        // Snapshot 发布后清理不必要的校验和签名文件（JReleaser 会重新生成）
+        if (isSnapshot) {
+            doLast {
+                val deployDir = rootProject.layout.buildDirectory.dir(snapshotDirName).get().asFile
+                if (deployDir.exists()) {
+                    deployDir.walkTopDown()
+                        .filter { it.isFile && it.extension in listOf("md5", "sha1", "sha256", "sha512", "asc") }
+                        .forEach {
+                            it.delete()
+                            logger.lifecycle("✅️ Removed: ${it.relativeTo(deployDir)}")
+                        }
+                }
+            }
+        }
+    }
+}
+
+// ==================== 根项目：JReleaser 与聚合发布任务 ====================
+
+// 1. JReleaser 全局配置 (必须在根项目)
+jreleaser {
+    gitRootSearch = true
+
+    signing {
+        active = org.jreleaser.model.Active.ALWAYS
+        pgp {
+            armored = true
+            mode = org.jreleaser.model.Signing.Mode.FILE
+            artifacts.set(true)
+            checksums.set(true)
+        }
+    }
+
+    deploy {
+        maven {
+            pomchecker { enabled = false }
+
+            // Release 配置 (Maven Central API)
+            mavenCentral {
+                create(releaseDirName) {
+                    active = org.jreleaser.model.Active.RELEASE
+                    url = nexusReleaseUrl
+                    // ✅ 指向根项目的 build/release-deploy，收集所有子模块产物
+                    stagingRepository(layout.buildDirectory.dir(releaseDirName).get())
+                    applyMavenCentralRules = false
+                    snapshotSupported = false
+                    maxRetries = 1
+                }
+            }
+
+            // Snapshot 配置 (Nexus2)
+            nexus2 {
+                create(snapshotDirName) {
+                    active = org.jreleaser.model.Active.SNAPSHOT
+                    snapshotUrl = nexusSnapshotUrl
+                    stagingRepository(layout.buildDirectory.dir(snapshotDirName).get())
+                    sign = false
+                    checksums = false
+                    sourceJar = true
+                    javadocJar = true
+                    snapshotSupported = true
+                    closeRepository = false
+                    releaseRepository = false
+                    verifyPom = false
+                }
+            }
+        }
+    }
+}
+
+// 2. 聚合发布任务 (在根项目注册，统一调度所有子模块)
+tasks.register("publishToMavenCentralSnapshot") {
+    group = "publishing"
+    description = "Build and publish SNAPSHOT version via JReleaser"
+
+    // 依赖所有子模块的 Snapshot 发布任务
+    subprojects.forEach { sub ->
+        // 排除不需要发布的模块
+        if (sub.name !in projectExclude) {
+            dependsOn("${sub.path}:publishAllPublicationsToSnapshotRepository")
+        }
+    }
+    // ✅ 产物全部写入 staging 目录后，再统一触发一次 JReleaser
+    finalizedBy(tasks.named("jreleaserDeploy"))
+}
+
+tasks.register("publishToMavenCentralRelease") {
+    group = "publishing"
+    description = "Build and publish RELEASE version via JReleaser"
+
+    subprojects.forEach { sub ->
+        if (sub.name !in projectExclude) {
+            dependsOn("${sub.path}:publishAllPublicationsToReleaseRepository")
+        }
+    }
+    finalizedBy(tasks.named("jreleaserDeploy"))
 }
 
 
@@ -214,6 +427,7 @@ tasks {
     }
 }
 
-project.allprojects.filter { it.name in projectExclude.split(",") }.forEach { it ->
-    it.tasks.forEach { it.enabled = false }
+// 排除指定项目任务执行，多模块项目下排除一些目录的任务执行，目录只担任管理模块的角色不需要其他任何需要构建的操作
+project.allprojects.filter { it.name in projectExclude }.forEach { excludedProject ->
+    excludedProject.tasks.configureEach { enabled = false }
 }
