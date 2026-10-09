@@ -1,4 +1,5 @@
-description = "mibrix-starter: springBoot快速启动器"
+description = "mibrix-starter: starter 模块管理"
 
-dependencies {
+subprojects {
+    dependencies {}
 }

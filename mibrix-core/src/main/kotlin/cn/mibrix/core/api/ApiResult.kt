@@ -10,8 +10,7 @@ import cn.mibrix.core.baseFailCode
 import cn.mibrix.core.baseFailMessage
 import cn.mibrix.core.baseOkCode
 import cn.mibrix.core.baseOkMessage
-import cn.mibrix.core.constant.CommonAssert
-import cn.mibrix.core.constant.CommonErrCode
+import cn.mibrix.core.exception.CommonErrChecker
 import io.swagger.v3.oas.annotations.media.Schema
 
 /**
@@ -20,7 +19,7 @@ import io.swagger.v3.oas.annotations.media.Schema
  * 约定：
  * - 所有 Controller（含统一 CRUD 网关、控制台 API、流程调用 API）均返回 ApiResult 包装结构；
  * - HTTP 状态码表达传输层语义（由全局异常处理器按 ErrorCode.httpStatus 设置），
- *   业务结果以 [code] 为准，[CommonErrCode.SUCCESS] 即 "0" 表示成功；
+ *   业务结果以 [code] 为准，[cn.mibrix.core.exception.CommonErrEnum.SUCCESS] 即 200 表示成功；
  * - [traceId] 预留链路追踪位，由后续审计/日志能力填充。
  *
  * @author shareloke
@@ -30,7 +29,7 @@ import io.swagger.v3.oas.annotations.media.Schema
 data class ApiResult<R>(
 
     @field:Schema(description = "业务状态码")
-    val code: String,
+    val code: Int,
 
     @field:Schema(description = "业务状态描述")
     val message: String,
@@ -70,7 +69,7 @@ data class ApiResult<R>(
          */
         @JvmStatic
         @JvmOverloads
-        fun <R> fail(err: CommonAssert, message: String? = null): ApiResult<R> =
+        fun <R> fail(err: CommonErrChecker, message: String? = null): ApiResult<R> =
             ApiResult(err.code, message ?: err.message)
 
         /**
@@ -82,7 +81,7 @@ data class ApiResult<R>(
          * @return the api result
          */
         @JvmStatic
-        fun <R> fail(code: String, message: String): ApiResult<R> = ApiResult(code, message)
+        fun <R> fail(code: Int, message: String): ApiResult<R> = ApiResult(code, message)
 
         /**
          * 失败返回

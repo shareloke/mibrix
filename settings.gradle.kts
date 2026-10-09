@@ -12,6 +12,16 @@ pluginManagement {
     }
 }
 
-include("mibrix-bom", "mibrix-core")
+include("mibrix-bom", "mibrix-core", "mibrix-web-ui", "mibrix-script")
 
+val excludeProjectDirs by gradle.extra(arrayOf("mibrix-data", "mibrix-sample", "mibrix-starter"))
+val projectPrefix = "mibrix-"
 
+rootDir.listFiles { file -> file.isDirectory() && file.name in excludeProjectDirs }?.forEach { file ->
+    val pName = file.name
+    file.listFiles { rFile ->
+        rFile.isDirectory && rFile.parentFile.name == pName && rFile.name.startsWith(projectPrefix)
+    }?.forEach {
+        include(":${pName}:${it.name}")
+    }
+}

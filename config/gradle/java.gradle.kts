@@ -3,6 +3,6 @@ configure<JavaPluginExtension> {
     withSourcesJar()
     withJavadocJar()
     toolchain {
-        languageVersion.set(JavaLanguageVersion.of(property("java.version")?.toString()?.toInt() ?: 17))
+        languageVersion.set(JavaLanguageVersion.of(property("java.version")?.toString()?.toInt() ?: 21))
     }
 }

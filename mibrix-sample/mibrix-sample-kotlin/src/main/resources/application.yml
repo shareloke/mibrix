@@ -1,0 +1,9 @@
+server:
+  port: 8062
+  servlet:
+    context-path: /sample-kotlin
+
+spring:
+  application:
+    name: mibrix-sample-kotlin
+

@@ -1,0 +1,8 @@
+server:
+  port: 8061
+  servlet:
+    context-path: /sample-java
+
+spring:
+  application:
+    name: mibrix-sample-java

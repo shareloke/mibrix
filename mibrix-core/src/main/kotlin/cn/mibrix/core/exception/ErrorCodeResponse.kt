@@ -4,19 +4,23 @@
  * SPDX-License-Identifier: Apache-2.0
  * Project: mibrix
  */
-package cn.mibrix.core.constant
+package cn.mibrix.core.exception
 
 /**
- *
+ * 错误码信息抽离
  *
  * @author shareloke
  * @date 2026-09-30
  */
-interface ErrorCode {
+interface ErrorCodeResponse {
 
-    /** 业务错误码，"0" 为成功 */
-    val code: String
+    /**
+     * 业务提示码
+     */
+    val code: Int
 
-    /** 默认提示信息（可被异常携带的信息覆盖） */
+    /**
+     * 业务提示信息
+     */
     val message: String
 }

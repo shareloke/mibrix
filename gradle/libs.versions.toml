@@ -7,26 +7,57 @@
 # ============================================================
 
 [versions]
+mibrix = "2026.0.0.3"
 kotlin = "2.0.21"
+kotlin-logging = "7.0.6"
 spring-boot = "3.5.16"
 spring-dependency-management = "1.1.7"
 detekt = "1.23.8"
 spotless = "7.2.1"
 swagger = "2.9.1"
 jreleaser = "1.26.0"
+hutool = "5.8.47"
+groovy-sandbox = "4.3.2"
+
 
 [libraries]
-
-# detekt 插件相关
+# ---- detekt 插件相关 ----
 detekt-plugin-formatting = { module = "io.gitlab.arturbosch.detekt:detekt-formatting", version.ref = "detekt" }
+
+# ---- Hutool ----
+hutool-bom = { module = "cn.hutool:hutool-bom", version.ref = "hutool" }
+hutool-all = { module = "cn.hutool:hutool-all" }
+hutool-aop = { module = "cn.hutool:hutool-aop" }
+hutool-bloom-filter = { module = "cn.hutool:hutool-bloomFilter" }
+hutool-cache = { module = "cn.hutool:hutool-cache" }
+hutool-captcha = { module = "cn.hutool:hutool-captcha" }
+hutool-core = { module = "cn.hutool:hutool-core" }
+hutool-crypto = { module = "cn.hutool:hutool-crypto" }
+hutool-cron = { module = "cn.hutool:hutool-cron" }
+hutool-db = { module = "cn.hutool:hutool-db" }
+hutool-dfa = { module = "cn.hutool:hutool-dfa" }
+hutool-extra = { module = "cn.hutool:hutool-extra" }
+hutool-http = { module = "cn.hutool:hutool-http" }
+hutool-json = { module = "cn.hutool:hutool-json" }
+hutool-jwt = { module = "cn.hutool:hutool-jwt" }
+hutool-log = { module = "cn.hutool:hutool-log" }
+hutool-poi = { module = "cn.hutool:hutool-poi" }
+hutool-script = { module = "cn.hutool:hutool-script" }
+hutool-setting = { module = "cn.hutool:hutool-setting" }
+hutool-socket = { module = "cn.hutool:hutool-socket" }
+hutool-system = { module = "cn.hutool:hutool-system" }
 
 # ---- Kotlin ----
 kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
+kotlin-logging = { module = "io.github.oshai:kotlin-logging-jvm", version.ref = "kotlin-logging" }
 
 # ---- Jackson ----
 jackson-module-kotlin = { module = "com.fasterxml.jackson.module:jackson-module-kotlin" }
 jackson-dataformat-yaml = { module = "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml" }
+
+# ---- Lombok ----
+lombok = { module = "org.projectlombok:lombok" }
 
 # ---- Spring Framework（由 BOM 管理版本） ----
 spring-core = { module = "org.springframework:spring-core" }
@@ -51,14 +82,16 @@ spring-boot-starter-data-redis = { module = "org.springframework.boot:spring-boo
 spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-starter-test" }
 spring-boot-autoconfigure-processor = { module = "org.springframework.boot:spring-boot-autoconfigure-processor" }
 
-# springdoc 接口文档
+# ---- springdoc 接口文档 ----
 springdoc-bom = { module = "org.springdoc:springdoc-openapi-bom", version.ref = "swagger" }
 springdoc-common = { module = "org.springdoc:springdoc-openapi-starter-common" }
 springdoc-webmvc-scalar = { module = "org.springdoc:springdoc-openapi-starter-webmvc-scalar" }
 
 # ---- Groovy（JSR-223 脚本引擎，版本由 BOM 管理） ----
-groovy = { module = "org.apache.groovy:groovy" }
+groovy-core = { module = "org.apache.groovy:groovy" }
+groovy-json = { module = "org.apache.groovy:groovy-json" }
 groovy-jsr223 = { module = "org.apache.groovy:groovy-jsr223" }
+groovy-sandbox = { module = "org.craftercms:groovy-sandbox", version.ref = "groovy-sandbox" }
 
 # ---- 缓存（版本由 BOM 管理） ----
 caffeine = { module = "com.github.ben-manes.caffeine:caffeine" }
